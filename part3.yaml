@@ -1,0 +1,17 @@
+version: '3'
+services:
+  chatbot:
+    image: 7940image
+    environment:
+      - TELEGRAM_ACCESS_TOKEN=6160653421:AAHGzKhMkgInIyZ0ES2hHDDTAs2ldiZ-yi0
+      - REDIS_HOST=redis
+      - REDIS_PASSWORD=comp7940passwordlab8
+      - REDIS_PORT=6379
+    entrypoint: python chatbot.py
+    depends_on:
+      - redis
+  redis:
+    image: redis
+    volumes:
+      - ./redis.conf:/usr/local/etc/redis/redis.conf
+    command: ["/usr/local/etc/redis/redis.conf"]
