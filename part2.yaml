@@ -1,0 +1,10 @@
+version: '3'
+services:
+  chatbot:
+    image: 7940image
+    environment:
+      - TELEGRAM_ACCESS_TOKEN=6160653421:AAHGzKhMkgInIyZ0ES2hHDDTAs2ldiZ-yi0
+      - REDIS_HOST=redis-13094.c282.east-us-mz.azure.cloud.redislabs.com
+      - REDIS_PASSWORD=s7JHCuaUPxQ3ROZQDGMBS2ZM0llfYZ9n
+      - REDIS_PORT=13094
+    entrypoint: python chatbot.py
