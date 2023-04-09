@@ -1,4 +1,4 @@
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Updater, MessageHandler, CommandHandler, Filters, CallbackContext, CallbackQueryHandler
 
 import os
@@ -6,9 +6,7 @@ import configparser
 import logging
 import redis
 
-from googleapiclient.discovery import build
-
-from youtube_search import search_video, list_hot_vidoes
+import requests
 # from image_search import search_image
 
 global redis1
@@ -17,17 +15,15 @@ global youtube
 config = configparser.ConfigParser()
 config.read('./config.ini')
 
-TELEGRAM_ACCESS_TOKEN = os.environ['TELEGRAM_ACCESS_TOKEN']
-REDIS_HOST = os.environ['REDIS_HOST']
-REDIS_PASSWORD = os.environ['REDIS_PASSWORD']
-REDIS_PORT = os.environ['REDIS_PORT']
-YOUTUBE_API_KEY = os.environ['YOUTUBE_API_KEY']
+# TELEGRAM_ACCESS_TOKEN = os.environ['TELEGRAM_ACCESS_TOKEN']
+# REDIS_HOST = os.environ['REDIS_HOST']
+# REDIS_PASSWORD = os.environ['REDIS_PASSWORD']
+# REDIS_PORT = os.environ['REDIS_PORT']
 
-# TELEGRAM_ACCESS_TOKEN = config['TELEGRAM']['ACCESS_TOKEN']
-# REDIS_HOST = config['REDIS']['HOST']
-# REDIS_PASSWORD = config['REDIS']['PASSWORD']
-# REDIS_PORT = config['REDIS']['REDISPORT']
-# YOUTUBE_API_KEY = config['YOUTUBE']['API_KEY']
+TELEGRAM_ACCESS_TOKEN = config['TELEGRAM']['ACCESS_TOKEN']
+REDIS_HOST = config['REDIS']['HOST']
+REDIS_PASSWORD = config['REDIS']['PASSWORD']
+REDIS_PORT = config['REDIS']['REDISPORT']
 
 
 def main():
@@ -59,6 +55,7 @@ def main():
         "help_handler": CommandHandler('help', help_command),
         "hello_handler": CommandHandler('hello', hello_command),
         "youtube_handler": CommandHandler('youtube', youtube_action),
+        "img_handler": CommandHandler('img', handle_image_command),
         "button_callback_handler": CallbackQueryHandler(button_callback)
     }
 
@@ -74,15 +71,42 @@ def main():
 #     search_image(update, context)
 
 
-def youtube_action(update, context):
-    query = " ".join(context.args)
-    global youtube
-    youtube = build('youtube', 'v3', developerKey=YOUTUBE_API_KEY)
-
-    if query == 'hot' or query == '':
-        list_hot_vidoes(update, context, youtube)
-    else:
-        search_video(update, context, query, youtube)
+def youtube_action(update: Update, context: CallbackContext):
+    msgs = context.args[0] if context.args else ''
+    url = 'http://127.0.0.1:5000/api/youtube'
+    params = { 'keywords': msgs }
+    try:
+        req = requests.get(url, params=params)
+        res = req.json()
+        # print(res)
+        if msgs: # 如果有参数，则返回带点赞按钮的消息
+            video_id = res['data']
+            data = {
+                'type': 'youtube_like',
+                'data': video_id
+            }
+            # 创建一个 InlineKeyboardButton 实例
+            Like_Button = InlineKeyboardButton('👍 Like', callback_data=str(data))
+            # 创建 InlineKeyboardMarkup 实例
+            keyboard = [[Like_Button]]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            text = f"https://www.youtube.com/watch?v={video_id}"
+            context.bot.send_message(
+                chat_id=update.message.chat_id,
+                text=text,
+                reply_markup=reply_markup
+            )
+        else: # 如果不带参数，则返回热门视频
+            data = res['data']
+            context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text="\n\n".join(data)
+            )
+    except:
+        context.bot.send_message(
+            chat_id=update.message.chat_id,
+            text='Something went wrong 😔',
+        )
 
 
 def echo(update, context):
@@ -156,6 +180,32 @@ def start(update: Update, context: CallbackContext):
         chat_id=update.message.chat_id,
         text="Hello! Welcome to the chat Bot. What can I do for you?"
     )
+
+
+def handle_image_command(update: Update, context: CallbackContext):
+    msgs = context.args[0] if context.args else ''
+    url = 'http://127.0.0.1:5000/api/img'
+    params = { 'keywords': msgs }
+    try:
+        req = requests.get(url, params=params)
+        res = req.json()
+        data = res['data']
+        image_path = os.path.join(os.getcwd(), 'temp.jpg')
+        res_img = requests.get(data)
+        # print(res_img.content, 11)
+        with open(image_path, 'wb') as f:
+            f.write(res_img.content)
+
+        context.bot.send_photo(
+            chat_id=update.effective_chat.id,
+            photo=open(image_path, 'rb')
+        )
+        os.remove(image_path)
+    except:
+        context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="Sorry, I could not find any images for the requested search term."
+        )
 
 
 if __name__ == '__main__':
