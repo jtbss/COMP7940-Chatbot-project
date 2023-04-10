@@ -9,7 +9,6 @@ import redis
 import requests
 
 global redis1
-global youtube
 
 config = configparser.ConfigParser()
 config.read('./config.ini')
