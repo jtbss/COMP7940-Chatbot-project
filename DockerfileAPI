@@ -1,0 +1,7 @@
+FROM python:3.9
+COPY api_server.py .
+COPY requirementsAPI.txt .
+RUN pip install pip update
+RUN pip install --no-cache-dir -r requirementsAPI.txt
+EXPOSE 5001
+CMD [ "python", "api_server.py" ]
