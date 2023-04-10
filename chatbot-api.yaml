@@ -1,0 +1,12 @@
+version: '3'
+services:
+  chatbot:
+    image: bot-api-image
+    entrypoint: python chatbot.py
+    depends_on:
+      - api
+  api:
+    image: bot-api-image
+    entrypoint: python api_server.py
+    ports:
+      - "5000:5000"

@@ -7,7 +7,6 @@ import logging
 import redis
 
 import requests
-# from image_search import search_image
 
 global redis1
 global youtube
@@ -15,16 +14,17 @@ global youtube
 config = configparser.ConfigParser()
 config.read('./config.ini')
 
-# TELEGRAM_ACCESS_TOKEN = os.environ['TELEGRAM_ACCESS_TOKEN']
-# REDIS_HOST = os.environ['REDIS_HOST']
-# REDIS_PASSWORD = os.environ['REDIS_PASSWORD']
-# REDIS_PORT = os.environ['REDIS_PORT']
+TELEGRAM_ACCESS_TOKEN = os.environ['TELEGRAM_ACCESS_TOKEN']
+REDIS_HOST = os.environ['REDIS_HOST']
+REDIS_PASSWORD = os.environ['REDIS_PASSWORD']
+REDIS_PORT = os.environ['REDIS_PORT']
 
-TELEGRAM_ACCESS_TOKEN = config['TELEGRAM']['ACCESS_TOKEN']
-REDIS_HOST = config['REDIS']['HOST']
-REDIS_PASSWORD = config['REDIS']['PASSWORD']
-REDIS_PORT = config['REDIS']['REDISPORT']
+# TELEGRAM_ACCESS_TOKEN = config['TELEGRAM']['ACCESS_TOKEN']
+# REDIS_HOST = config['REDIS']['HOST']
+# REDIS_PASSWORD = config['REDIS']['PASSWORD']
+# REDIS_PORT = config['REDIS']['REDISPORT']
 
+API_DOMAIN = 'jiangjintian.ddns.net'
 
 def main():
     # Load your token and create an Updater for your bot
@@ -55,6 +55,8 @@ def main():
         "help_handler": CommandHandler('help', help_command),
         "hello_handler": CommandHandler('hello', hello_command),
         "youtube_handler": CommandHandler('youtube', youtube_action),
+        "album_handler": CommandHandler('album', album_command),
+        "artist_handler": CommandHandler('artist', artist_command),
         "img_handler": CommandHandler('img', handle_image_command),
         "button_callback_handler": CallbackQueryHandler(button_callback)
     }
@@ -67,18 +69,47 @@ def main():
     updater.idle()
 
 
-# def image_action(update: Update, context: CallbackContext):
-#     search_image(update, context)
+def album_command(update: Update, context: CallbackContext) -> None:
+    msgs = context.args[0] if context.args else ''
+    url = f'https://{API_DOMAIN}/chatbot-api/album'
+    params = {'keywords': msgs }
+    try:
+        req = requests.get(url, params=params)
+        res = req.json()
+        data = res['data']
+        update.message.reply_text(data)
+    except:    
+        context.bot.send_message(
+            chat_id=update.message.chat_id,
+            text='Something went wrong',
+        )
+
+
+def artist_command(update: Update, context: CallbackContext) -> None:
+    msgs = context.args[0] if context.args else ''
+    url = f'http://{API_DOMAIN}/chatbot-api/artist'
+    params = {'keywords': msgs }
+    try:
+        req = requests.get(url, params=params)
+        res = req.json()
+        data = res['data']
+        update.message.reply_text(data)
+    except:    
+        context.bot.send_message(
+            chat_id=update.message.chat_id,
+            text='Something went wrong',
+        )
+
 
 
 def youtube_action(update: Update, context: CallbackContext):
     msgs = context.args[0] if context.args else ''
-    url = 'http://127.0.0.1:5000/api/youtube'
+    url = f'https://{API_DOMAIN}/chatbot-api/youtube'
     params = { 'keywords': msgs }
     try:
         req = requests.get(url, params=params)
         res = req.json()
-        # print(res)
+        print(res)
         if msgs: # 如果有参数，则返回带点赞按钮的消息
             video_id = res['data']
             data = {
@@ -184,7 +215,7 @@ def start(update: Update, context: CallbackContext):
 
 def handle_image_command(update: Update, context: CallbackContext):
     msgs = context.args[0] if context.args else ''
-    url = 'http://127.0.0.1:5000/api/img'
+    url = f'https://{API_DOMAIN}/chatbot-api/img'
     params = { 'keywords': msgs }
     try:
         req = requests.get(url, params=params)

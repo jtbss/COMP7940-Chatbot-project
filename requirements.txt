@@ -4,3 +4,5 @@ python-telegram-bot==13.7
 redis
 google-api-python-client
 requests
+flask
+flask-cors
